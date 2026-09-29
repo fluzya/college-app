@@ -35,36 +35,41 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        try {
+            setContentView(R.layout.activity_main)
 
-        api = TopAcademyApi(this)
+            api = TopAcademyApi(this)
 
-        // Инициализация уведомлений и каналов
-        NotificationHelper.createNotificationChannels(this)
-        checkNotificationPermission()
-        NotificationHelper.scheduleAlarms(this)
+            // Инициализация уведомлений и каналов
+            NotificationHelper.createNotificationChannels(this)
+            checkNotificationPermission()
+            NotificationHelper.scheduleAlarms(this)
 
-        val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNav)
-        bottomNav.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                R.id.nav_schedule -> {
-                    showScheduleView()
-                    true
+            val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNav)
+            bottomNav.setOnItemSelectedListener { item ->
+                when (item.itemId) {
+                    R.id.nav_schedule -> {
+                        showScheduleView()
+                        true
+                    }
+                    R.id.nav_skincare -> {
+                        showSkincareView()
+                        true
+                    }
+                    R.id.nav_settings -> {
+                        showSettingsView()
+                        true
+                    }
+                    else -> false
                 }
-                R.id.nav_skincare -> {
-                    showSkincareView()
-                    true
-                }
-                R.id.nav_settings -> {
-                    showSettingsView()
-                    true
-                }
-                else -> false
             }
-        }
 
-        // По умолчанию открываем экран расписания
-        showScheduleView()
+            // По умолчанию открываем экран расписания
+            showScheduleView()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "Ошибка запуска: ${e.message}", Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun checkNotificationPermission() {
@@ -121,8 +126,8 @@ class MainActivity : AppCompatActivity() {
         btnToday.setOnClickListener {
             if (isViewingTomorrow) {
                 isViewingTomorrow = false
-                btnToday.setBackgroundColor(ContextCompat.getColor(this, R.color.primary))
-                btnTomorrow.setBackgroundColor(ContextCompat.getColor(this, R.color.divider))
+                btnToday.backgroundTintList = ContextCompat.getColorStateList(this, R.color.primary)
+                btnTomorrow.backgroundTintList = ContextCompat.getColorStateList(this, R.color.divider)
                 loadData()
             }
         }
@@ -130,8 +135,8 @@ class MainActivity : AppCompatActivity() {
         btnTomorrow.setOnClickListener {
             if (!isViewingTomorrow) {
                 isViewingTomorrow = true
-                btnTomorrow.setBackgroundColor(ContextCompat.getColor(this, R.color.primary))
-                btnToday.setBackgroundColor(ContextCompat.getColor(this, R.color.divider))
+                btnTomorrow.backgroundTintList = ContextCompat.getColorStateList(this, R.color.primary)
+                btnToday.backgroundTintList = ContextCompat.getColorStateList(this, R.color.divider)
                 loadData()
             }
         }

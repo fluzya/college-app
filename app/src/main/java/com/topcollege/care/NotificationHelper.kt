@@ -137,60 +137,77 @@ object NotificationHelper {
     }
 
     fun scheduleAlarms(context: Context) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        try {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
 
-        // 1. Утренний будильник на 06:00
-        val morningIntent = Intent(context, AlarmReceiver::class.java).apply {
-            action = "com.topcollege.care.ACTION_MORNING_DIGEST"
-        }
-        val morningPi = PendingIntent.getBroadcast(
-            context,
-            101,
-            morningIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val morningCal = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 6)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-            if (timeInMillis <= System.currentTimeMillis()) {
-                add(Calendar.DAY_OF_YEAR, 1)
+            // 1. Утренний будильник на 06:00
+            val morningIntent = Intent(context, AlarmReceiver::class.java).apply {
+                action = "com.topcollege.care.ACTION_MORNING_DIGEST"
             }
-        }
+            val morningPi = PendingIntent.getBroadcast(
+                context,
+                101,
+                morningIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, morningCal.timeInMillis, morningPi)
-        } else {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, morningCal.timeInMillis, morningPi)
-        }
-
-        // 2. Вечерний будильник на 22:00
-        val eveningIntent = Intent(context, AlarmReceiver::class.java).apply {
-            action = "com.topcollege.care.ACTION_EVENING_DIGEST"
-        }
-        val eveningPi = PendingIntent.getBroadcast(
-            context,
-            102,
-            eveningIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val eveningCal = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 22)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-            if (timeInMillis <= System.currentTimeMillis()) {
-                add(Calendar.DAY_OF_YEAR, 1)
+            val morningCal = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 6)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+                if (timeInMillis <= System.currentTimeMillis()) {
+                    add(Calendar.DAY_OF_YEAR, 1)
+                }
             }
-        }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, eveningCal.timeInMillis, eveningPi)
-        } else {
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, eveningCal.timeInMillis, eveningPi)
+            safeSetExactAlarm(alarmManager, morningCal.timeInMillis, morningPi)
+
+            // 2. Вечерний будильник на 22:00
+            val eveningIntent = Intent(context, AlarmReceiver::class.java).apply {
+                action = "com.topcollege.care.ACTION_EVENING_DIGEST"
+            }
+            val eveningPi = PendingIntent.getBroadcast(
+                context,
+                102,
+                eveningIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val eveningCal = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 22)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+                if (timeInMillis <= System.currentTimeMillis()) {
+                    add(Calendar.DAY_OF_YEAR, 1)
+                }
+            }
+
+            safeSetExactAlarm(alarmManager, eveningCal.timeInMillis, eveningPi)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun safeSetExactAlarm(alarmManager: AlarmManager, triggerAtMillis: Long, pi: PendingIntent) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                if (alarmManager.canScheduleExactAlarms()) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+                } else {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+            }
+        } catch (e: SecurityException) {
+            // Если в Android 13/14 нет разрешения на точные будильники, используем обычный
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pi)
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }
